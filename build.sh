@@ -1,0 +1,134 @@
+#!/bin/sh
+
+TOOLCHAIN=aarch64-linux-gnu-
+
+if [ "$VERSION" = "2022" ]; then
+    UBOOT_DIR=uboot-mtk-20220606
+    ATF_DIR=atf-20220606-637ba581b
+elif [ "$VERSION" = "2023" ]; then
+    UBOOT_DIR=uboot-mtk-20230718-09eda825
+    ATF_DIR=atf-20231013-0ea67d76a
+elif [ "$VERSION" = "2024" ]; then
+    UBOOT_DIR=uboot-mtk-20230718-09eda825
+    ATF_DIR=atf-20240117-bacca82a8
+elif [ "$VERSION" = "2025" ]; then
+    UBOOT_DIR=uboot-mtk-20250711
+    ATF_DIR=atf-20250711
+elif [ "$VERSION" = "2026" ]; then
+    UBOOT_DIR=uboot-mtk-20260123
+    ATF_DIR=atf-20260123
+else
+    echo "Error: Unsupported VERSION. Please specify VERSION=2022/2023/2024/2025."
+    exit 1
+fi
+
+if [ -z "$SOC" ] || [ -z "$BOARD" ]; then
+    echo "Usage: SOC=[mt7981|mt7986] BOARD=<board name> VERSION=[2022|2023|2024|2025] $0"
+    echo "eg: SOC=mt7981 BOARD=360t7 VERSION=2022 $0"
+    echo "eg: SOC=mt7981 BOARD=wr30u VERSION=2023 $0"
+    echo "eg: SOC=mt7981 BOARD=cmcc_rax3000m-emmc VERSION=2024 $0"
+    echo "eg: SOC=mt7981 BOARD=philips_hy3000 VERSION=2022 $0"
+    echo "eg: SOC=mt7986 BOARD=redmi_ax6000 VERSION=2022 $0"
+    echo "eg: SOC=mt7986 BOARD=jdcloud_re-cp-03 VERSION=2025 $0"
+    exit 1
+fi
+
+# Check if Python is installed on the system
+command -v python3
+[ "$?" != "0" ] && { echo "Error: Python is not installed on this system."; exit 0; }
+
+echo "Trying cross compiler..."
+command -v "${TOOLCHAIN}gcc"
+[ "$?" != "0" ] && { echo "${TOOLCHAIN}gcc not found!"; exit 0; }
+export CROSS_COMPILE="$TOOLCHAIN"
+
+ATF_CFG_SOURCE="${SOC}_${BOARD}_defconfig"
+UBOOT_CFG_SOURCE="${SOC}_${BOARD}_defconfig"
+
+# 为 sources的配置文件做备份
+ATF_CFG="${ATF_CFG:-$ATF_CFG_SOURCE}"
+UBOOT_CFG="${UBOOT_CFG:-$UBOOT_CFG_SOURCE}"
+
+if grep -Eq "CONFIG_FLASH_DEVICE_EMMC=y|_BOOT_DEVICE_EMMC=y" $ATF_DIR/configs/$ATF_CFG ; then
+	# No fixed-mtdparts or multilayout for EMMC
+	fixedparts=0
+	multilayout=0
+else
+	# Build fixed-mtdparts by default for NAND
+	fixedparts=${FIXED_MTDPARTS:-1}
+	multilayout=${MULTI_LAYOUT:-0}
+	if [ "$multilayout" = "1" ]; then
+		UBOOT_CFG="${SOC}_${BOARD}_multi_layout_defconfig"
+	fi
+fi
+
+for file in "$ATF_DIR/configs/$ATF_CFG" "$UBOOT_DIR/configs/$UBOOT_CFG"; do
+	if [ ! -f "$file" ]; then
+		echo "$file not found!"
+		exit 1
+	fi
+done
+
+echo "Building for: ${SOC}_${BOARD}, fixed-mtdparts: $fixedparts, multi-layout: $multilayout"
+echo "u-boot dir: $UBOOT_DIR"
+echo "atf dir: $ATF_DIR"
+
+echo "Build u-boot..."
+rm -f "$UBOOT_DIR/u-boot.bin"
+cp -f "$UBOOT_DIR/configs/$UBOOT_CFG" "$UBOOT_DIR/.config"
+if [ "$fixedparts" = "1" ]; then
+	echo "Build u-boot with fixed-mtdparts!"
+	echo "CONFIG_MEDIATEK_UBI_FIXED_MTDPARTS=y" >> "$UBOOT_DIR/.config"
+	echo "CONFIG_MTK_FIXED_MTD_MTDPARTS=y" >> "$UBOOT_DIR/.config"
+fi
+make -C "$UBOOT_DIR" olddefconfig
+make -C "$UBOOT_DIR" clean
+make -C "$UBOOT_DIR" -j $(nproc) all
+if [ -f "$UBOOT_DIR/u-boot.bin" ]; then
+	cp -f "$UBOOT_DIR/u-boot.bin" "$ATF_DIR/u-boot.bin"
+	echo "u-boot build done!"
+else
+	echo "u-boot build fail!"
+	exit 1
+fi
+
+echo "Build atf..."
+if [ -e "$ATF_DIR/makefile" ]; then
+	ATF_MKFILE="makefile"
+else
+	ATF_MKFILE="Makefile"
+fi
+make -C "$ATF_DIR" -f "$ATF_MKFILE" clean CONFIG_CROSS_COMPILER="$TOOLCHAIN" CROSS_COMPILER="$TOOLCHAIN"
+rm -rf "$ATF_DIR/build"
+make -C "$ATF_DIR" -f "$ATF_MKFILE" "$ATF_CFG" CONFIG_CROSS_COMPILER="$TOOLCHAIN" CROSS_COMPILER="$TOOLCHAIN"
+make -C "$ATF_DIR" -f "$ATF_MKFILE" all CONFIG_CROSS_COMPILER="$TOOLCHAIN" CROSS_COMPILER="$TOOLCHAIN" CONFIG_BL33="../$UBOOT_DIR/u-boot.bin" BL33="../$UBOOT_DIR/u-boot.bin" -j $(nproc)
+
+mkdir -p "output"
+if [ -f "$ATF_DIR/build/${SOC}/release/fip.bin" ]; then
+		FIP_NAME="${SOC}_${BOARD}_${VERSION}-fip"
+		# Append '-dhcpd' for different VERSION
+		if [ "$VERSION" = "2022" ] || [ "$VERSION" = "2023" ] || [ "$VERSION" = "2024" ] || [ "$VERSION" = "2025" ]; then
+			FIP_NAME="${FIP_NAME}-dhcpd-Yuzhii"
+		fi
+	if [ "$fixedparts" = "1" ]; then
+		FIP_NAME="${FIP_NAME}-fixed-parts"
+	fi
+	if [ "$multilayout" = "1" ]; then
+		FIP_NAME="${FIP_NAME}-multi-layout"
+	fi
+	cp -f "$ATF_DIR/build/${SOC}/release/fip.bin" "output/${FIP_NAME}.bin"
+	echo "$FIP_NAME build done"
+else
+	echo "fip build fail!"
+	exit 1
+fi
+if grep -Eq "(^_|CONFIG_TARGET_ALL_NO_SEC_BOOT=y)" "$ATF_DIR/configs/$ATF_CFG"; then
+	if [ -f "$ATF_DIR/build/${SOC}/release/bl2.img" ]; then
+		BL2_NAME="${SOC}_${BOARD}_${VERSION}-bl2"
+		cp -f "$ATF_DIR/build/${SOC}/release/bl2.img" "output/${BL2_NAME}.bin"
+		echo "$BL2_NAME build done"
+	else
+		echo "bl2 build fail!"
+		exit 1
+	fi
+fi
