@@ -772,7 +772,8 @@ bool read_verify_rootfs(struct image_read_priv *rpriv, const void *fit,
 bool read_verify_itb_image(struct image_read_priv *rpriv, void *ptr, u64 addr,
 			   size_t max_size, size_t *actual_size)
 {
-	ulong probe_size, fit_size, image_size;
+	ulong probe_size, fit_size;
+	size_t image_size;
 	int ret;
 
 	if (!rpriv || !ptr)
@@ -807,7 +808,7 @@ bool read_verify_itb_image(struct image_read_priv *rpriv, void *ptr, u64 addr,
 		return false;
 	}
 
-	image_size = itb_image_size(ptr);
+	image_size = fit_get_totalsize(ptr);
 	if (!image_size || (max_size && image_size > max_size)) {
 		if (image_size && max_size) {
 			printf("itb image size is invalid (%lu >= %zu)\n",
