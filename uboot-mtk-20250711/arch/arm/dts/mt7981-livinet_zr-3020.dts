@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0
-
 /dts-v1/;
 #include "mt7981.dtsi"
 #include <dt-bindings/gpio/gpio.h>
@@ -7,7 +5,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-livinet_zr-3020";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,20 +15,20 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
-		system_led = "green:system";
+		blink_led = "red:d8";
+		system_led = "green:upgrade";
 	};
 
 	gpio-keys {
 		compatible = "gpio-keys";
 
-		reset-button {
+		button-reset {
 			label = "reset";
 			linux,code = <KEY_RESTART>;
 			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
 		};
 
-		mesh-button {
+		button-mesh {
 			label = "mesh";
 			linux,code = <BTN_9>;
 			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
@@ -41,14 +39,44 @@
 		compatible = "gpio-leds";
 
 		led-0 {
-			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			label = "red:d8";
+			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
 		};
 
 		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+			label = "blue:internet";
+			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+		};
+
+		running_led: led-2 {
+			label = "blue:running";
+			gpios = <&pio 9 GPIO_ACTIVE_LOW>;
+		};
+
+		upgrade_led: led-3 {
+			label = "green:upgrade";
+			gpios = <&pio 10 GPIO_ACTIVE_LOW>;
+		};
+
+		boot_led: led-4 {
+			label = "red:boot";
+			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+		};
+
+		led-6 {
+			label = "blue:d7";
+			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
+		};
+
+		led-7 {
+			label = "blue:wlan2g";
+			gpios = <&pio 34 GPIO_ACTIVE_LOW>;
+		};
+
+		led-8 {
+			label = "blue:wlan5g";
+			gpios = <&pio 35 GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	memory@40000000 {

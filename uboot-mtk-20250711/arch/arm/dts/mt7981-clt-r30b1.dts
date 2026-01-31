@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-clt-r30b1";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,8 +17,31 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
+		blink_led = "red:system";
 		system_led = "green:system";
+	};
+
+	mtd-layout {
+		layout@0 {
+			label = "default";
+			// mtd layout for clt_r30b1 stock ubi or openwrt-stock/immortalwrt-stock firmware
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),64M(ubi),32M(data)";
+		};
+
+		layout@1 {
+			label = "immortalwrt-112m";
+			// mtd layout for immortalwrt/openwrt 112M ubi firmware
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),112M(ubi)";
+		};
+
+		layout@2 {
+			label = "qwrt";
+			// mtd layout for lean qwrt
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),2048k(Factory),2048k(fip),1024k(rsv0),110M(ubi)";
+		};
 	};
 
 	gpio-keys {
@@ -27,13 +50,13 @@
 		reset-button {
 			label = "reset";
 			linux,code = <KEY_RESTART>;
-			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
 		};
 
 		mesh-button {
 			label = "mesh";
 			linux,code = <BTN_9>;
-			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
 		};
 	};
 
@@ -41,14 +64,41 @@
 		compatible = "gpio-leds";
 
 		led-0 {
-			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			label = "red:power";
+			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
 		};
 
-		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+		system_led: led-1 {
+			label = "red:wan";
+			gpios = <&pio 5 GPIO_ACTIVE_LOW>;
+		};
+
+		led-2 {
+			label = "green:wan";
+			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
+		};
+
+		led-3 {
+			label = "green:system";
+			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+			linux,default-trigger = "default-on";
+		};
+
+		led-4 {
+			label = "blue:internet";
+			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+		};
+
+		led-5 {
+			label = "blue:mesh";
+			gpios = <&pio 13 GPIO_ACTIVE_LOW>;
+		};
+
+		led-6 {
+			label = "green:wifi";
+			gpios = <&pio 34 GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	memory@40000000 {

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
 /dts-v1/;
 #include "mt7981.dtsi"
@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-imou_lc-hx3001";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,20 +17,20 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
-		system_led = "green:system";
+		blink_led = "green:power";
+		system_led = "green:power";
 	};
 
 	gpio-keys {
 		compatible = "gpio-keys";
 
-		reset-button {
+		button-reset {
 			label = "reset";
 			linux,code = <KEY_RESTART>;
 			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
 		};
 
-		mesh-button {
+		button-mesh {
 			label = "mesh";
 			linux,code = <BTN_9>;
 			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
@@ -40,15 +40,30 @@
 	leds {
 		compatible = "gpio-leds";
 
-		led-0 {
-			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+		power_led: led-0 {
+			label = "green:power";
+			gpios = <&pio 4 GPIO_ACTIVE_LOW>;
 		};
 
 		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+			label = "green:wlan";
+			gpios = <&pio 5 GPIO_ACTIVE_LOW>;
+		};
+
+		led-2 {
+			label = "red:wan";
+			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
+		};
+
+		led-3 {
+			label = "green:wan";
+			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+		};
+
+		led-4 {
+			label = "green:lan";
+			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	memory@40000000 {
