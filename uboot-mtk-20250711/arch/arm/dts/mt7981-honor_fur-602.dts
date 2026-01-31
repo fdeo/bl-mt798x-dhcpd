@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-honor_fur-602";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,8 +17,25 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
+		blink_led = "red:system";
 		system_led = "green:system";
+	};
+
+	mtd-layout {
+		layout@0 {
+			label = "default";
+			// mtd layout for stock 64m ubi firmware
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),1920k(factory),128k(Trace),2048k(fip),65536k(ubi),128k(Tracebak),51200k(foxfs)";
+		};
+
+		layout@1 {
+			label = "expand(114m)";
+			// mtd layout for 114m ubi firmware
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),512k(u-boot-env),1920k(factory),128k(Trace),2048k(fip),116736k(ubi)";
+		};
+
 	};
 
 	gpio-keys {
@@ -42,15 +59,14 @@
 
 		led-0 {
 			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
 		};
 
 		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+			label = "red:system";
+			gpios = <&pio 13 GPIO_ACTIVE_LOW>;
+		};
 	};
-
 	memory@40000000 {
 		device_type = "memory";
 		reg = <0x40000000 0x10000000>;

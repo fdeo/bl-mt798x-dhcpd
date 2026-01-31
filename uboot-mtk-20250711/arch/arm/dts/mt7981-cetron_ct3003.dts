@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
 /dts-v1/;
 #include "mt7981.dtsi"
@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-cetron_ct3003";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -16,39 +16,40 @@
 	};
 
 	config {
-		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
-		system_led = "green:system";
+		blink_led = "red:status";
+		system_led = "green:status";
 	};
 
 	gpio-keys {
 		compatible = "gpio-keys";
 
-		reset-button {
+		button-reset {
 			label = "reset";
 			linux,code = <KEY_RESTART>;
 			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
 		};
 
-		mesh-button {
+		button-mesh {
 			label = "mesh";
 			linux,code = <BTN_9>;
-			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 0 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
 	leds {
 		compatible = "gpio-leds";
 
-		led-0 {
-			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+		status_red_led: led-0 {
+			label = "red:status";
+			linux,code = <KEY_RESTART>;
+			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
 		};
 
-		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+		status_green_led: led-1 {
+			label = "green:status";
+			linux,code = <BTN_9>;
+			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	memory@40000000 {

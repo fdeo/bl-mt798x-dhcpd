@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-konka_komi-a31";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,8 +17,8 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
-		system_led = "green:system";
+		blink_led = "red:system";
+		system_led = "blue:system";
 	};
 
 	gpio-keys {
@@ -42,15 +42,20 @@
 
 		led-0 {
 			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
 		};
 
 		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
-	};
+			label = "blue:system";
+			gpios = <&pio 13 GPIO_ACTIVE_LOW>;
+		};
 
+		led-2 {
+			label = "red:system";
+			gpios = <&pio 34 GPIO_ACTIVE_LOW>;
+		};
+	};
+	
 	memory@40000000 {
 		device_type = "memory";
 		reg = <0x40000000 0x10000000>;

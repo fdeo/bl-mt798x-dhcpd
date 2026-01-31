@@ -7,7 +7,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	model = "mt7981-360-t7";
+	model = "mt7981-xiaomi-wr30u";
 	compatible = "mediatek,mt7981", "mediatek,mt7981-rfb";
 
 	chosen {
@@ -17,8 +17,36 @@
 
 	config {
 		bootcmd = "mtkboardboot";
-		blink_led = "red:run";
-		system_led = "green:system";
+		blink_led = "yellow:network";
+		system_led = "blue:system";
+	};
+
+	mtd-layout {
+		layout@0 {
+			label = "default";
+			// mtd layout for xiaomi stock ubi or openwrt-stock/immortalwrt-stock firmware
+			cmdline = "console=ttyS0,115200n1 loglevel=8 swiotlb=512 firmware=0 mtd=ubi uart_en=1";
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),256k(Nvram),256k(Bdata),2048k(factory),2048k(fip),256k(crash),256k(crash_log),34816k(ubi_kernel),79872k(ubi),256k(KF)";
+			boot_part = "ubi_kernel"; // ubi boot part, default is "ubi"
+			factory_part = "ubi_kernel"; // factory firmware write part, default is "ubi"
+			sysupgrade_kernel_ubipart = "ubi_kernel"; // sysupgrade kernel write part (ubi volume: kernel), default is "ubi"
+			sysupgrade_rootfs_ubipart = "ubi"; // sysupgrade rootfs write part (ubi volume: rootfs, rootfs_data)
+		};
+
+		layout@1 {
+			label = "immortalwrt-112m";
+			// mtd layout for immortalwrt/openwrt 112M ubi firmware
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),256k(Nvram),256k(Bdata),2048k(factory),2048k(fip),256k(crash),256k(crash_log),112m(ubi),256k(KF)";
+		};
+
+		layout@2 {
+			label = "qwrt";
+			// mtd layout for lean qwrt
+			mtdids = "nmbm0=nmbm0";
+			mtdparts = "nmbm0:1024k(bl2),256k(Nvram),256k(Bdata),2048k(factory),2048k(fip),256k(crash),256k(crash_log),1024k(rsv0),110m(ubi)";
+		};
 	};
 
 	gpio-keys {
@@ -41,14 +69,24 @@
 		compatible = "gpio-leds";
 
 		led-0 {
-			label = "green:system";
-			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
+			label = "blue:system";
+			gpios = <&pio 9 GPIO_ACTIVE_LOW>;
 		};
 
 		led-1 {
-			label = "red:run";
-			gpios = <&pio 3 GPIO_ACTIVE_LOW>;
-        };
+			label = "yellow:system";
+			gpios = <&pio 10 GPIO_ACTIVE_LOW>;
+		};
+
+		led-2 {
+			label = "blue:network";
+			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+		};
+
+		led-3 {
+			label = "yellow:network";
+			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	memory@40000000 {
