@@ -8,6 +8,7 @@
  */
 
 #include <env.h>
+#include <exports.h>
 #include <errno.h>
 #include <fdt_support.h>
 #include <image.h>

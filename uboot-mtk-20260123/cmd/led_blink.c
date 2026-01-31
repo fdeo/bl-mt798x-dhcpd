@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0+
 
-#include <common.h>
 #include <command.h>
 #include <led.h>
 #include <poller.h>
+#include <time.h>
 
 #define MAX_LED_BLINK 5
 
