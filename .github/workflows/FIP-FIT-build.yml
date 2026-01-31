@@ -1,4 +1,4 @@
-name: Build FIT BL2 and FIP
+name: UBoot-2022-FIT Build
 
 on:
   workflow_dispatch:
@@ -201,9 +201,9 @@ jobs:
           set -euo pipefail
           SUFFIX="-FIT-${TIMESTAMP}"
 
-          if [ "${{ inputs.OC_BL2 }}" = "true" ]; then
+          if [ "${{ env.OC_BL2 }}" = "1" ]; then
             for file in output/*; do
-              if [[ "$file" == *"bl2.bin"* ]]; then
+              if [[ "$file" == *"mt7981"* && "$file" == *"bl2.bin"* ]]; then
                 mv "$file" "${file%.bin}_oc1.6GHz.bin"
               fi
             done
