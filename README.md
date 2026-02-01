@@ -6,6 +6,8 @@ Supports GitHub Actions for automatic builds, and can generate both normal and o
 
 **Warnign: Flashing custom bootloaders can brick your device. Proceed with caution and at your own risk.**
 
+**Version 2026 is in beta, please report any issues you encounter.**
+
 ## About bl-mt798x
 
 > Version-2026 WEB UI preview
