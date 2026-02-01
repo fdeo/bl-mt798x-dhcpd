@@ -45,13 +45,13 @@ sudo apt install gcc-aarch64-linux-gnu build-essential flex bison libssl-dev dev
 
 ```bash
 chmod +x build.sh
-SOC= BOARD= VERSION=2026 ./build.sh
+SOC= BOARD= ./build.sh
 ```
 
 - SOC=mt7981/mt7986
-- VERSION=2026
-- MULTI_LAYOUT=1 (Optional, only for multi-layout devices)
-- Version differences:
+- MULTI_LAYOUT=0
+
+> MULTI_LAYOUT default=1, set to 0 to disable multi layout, if board is not support multi layout will fallback to single layout automatically.
 
 | Version | ATF | UBOOT |
 | --- | --- | --- |

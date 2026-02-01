@@ -2,6 +2,9 @@
 
 TOOLCHAIN=aarch64-linux-gnu-
 
+VERSION=${VERSION:-2026}
+MULTI_LAYOUT=${MULTI_LAYOUT:-1}
+
 if [ "$VERSION" = "2022" ]; then
     UBOOT_DIR=uboot-mtk-20220606
     ATF_DIR=atf-20220606-637ba581b
@@ -45,7 +48,7 @@ export CROSS_COMPILE="$TOOLCHAIN"
 ATF_CFG_SOURCE="${SOC}_${BOARD}_defconfig"
 UBOOT_CFG_SOURCE="${SOC}_${BOARD}_defconfig"
 
-# 为 sources的配置文件做备份
+# Backup the configuration files in sources
 ATF_CFG="${ATF_CFG:-$ATF_CFG_SOURCE}"
 UBOOT_CFG="${UBOOT_CFG:-$UBOOT_CFG_SOURCE}"
 
@@ -60,6 +63,12 @@ else
 	if [ "$multilayout" = "1" ]; then
 		UBOOT_CFG="${SOC}_${BOARD}_multi_layout_defconfig"
 	fi
+fi
+
+if [ "$multilayout" = "1" ] && [ ! -f "$UBOOT_DIR/configs/$UBOOT_CFG" ]; then
+	echo "Warning: $UBOOT_DIR/configs/$UBOOT_CFG not found, fallback to single-layout."
+	multilayout=0
+	UBOOT_CFG="${SOC}_${BOARD}_defconfig"
 fi
 
 for file in "$ATF_DIR/configs/$ATF_CFG" "$UBOOT_DIR/configs/$UBOOT_CFG"; do
