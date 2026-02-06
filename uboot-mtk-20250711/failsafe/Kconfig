@@ -40,6 +40,16 @@ config WEBUI_FAILSAFE_BACKUP
 	help
 	  Enable backup download functionality in the failsafe Web UI.
 
+config WEBUI_FAILSAFE_FLASH
+	bool "Enable flash editor (DANGEROUS)"
+	default y
+	depends on WEBUI_FAILSAFE_BACKUP
+	help
+	  Enable flash editor in the failsafe Web UI for reading/writing
+	  arbitrary storage ranges and restoring backup files.
+
+	  WARNING: This is a dangerous feature and may brick the device.
+
 config WEBUI_FAILSAFE_ENV
 	bool "Enable U-Boot environment management"
 	default y

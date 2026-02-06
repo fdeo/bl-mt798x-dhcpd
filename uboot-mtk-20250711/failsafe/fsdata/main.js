@@ -86,7 +86,7 @@ function ensureSidebar() {
         setLang(this.value)
     }, c.appendChild(r), h.appendChild(c), l = document.createElement("div"), l.className = "control-row", g = document.createElement("div"), g.setAttribute("data-i18n", "control.theme"), g.textContent = t("control.theme"), l.appendChild(g), n = document.createElement("select"), n.id = "theme_select", a = document.createElement("option"), a.value = "auto", a.setAttribute("data-i18n", "theme.auto"), a.textContent = t("theme.auto"), v = document.createElement("option"), v.value = "light", v.setAttribute("data-i18n", "theme.light"), v.textContent = t("theme.light"), y = document.createElement("option"), y.value = "dark", y.setAttribute("data-i18n", "theme.dark"), y.textContent = t("theme.dark"), n.appendChild(a), n.appendChild(v), n.appendChild(y), n.value = APP_STATE.theme, n.onchange = function () {
         setTheme(this.value)
-    }, l.appendChild(n), h.appendChild(l), i.appendChild(h), p = document.createElement("div"), p.className = "nav", e = document.createElement("div"), e.className = "nav-section", w = document.createElement("div"), w.className = "nav-section-title", w.setAttribute("data-i18n", "nav.basic"), w.textContent = t("nav.basic"), e.appendChild(w), e.appendChild(o("/", "nav.firmware", "firmware")), e.appendChild(o("/uboot.html", "nav.uboot", "uboot")), p.appendChild(e), u = document.createElement("div"), u.className = "nav-section", b = document.createElement("div"), b.className = "nav-section-title", b.setAttribute("data-i18n", "nav.advanced"), b.textContent = t("nav.advanced"), u.appendChild(b), u.appendChild(o("/bl2.html", "nav.bl2", "bl2")), u.appendChild(o("/gpt.html", "nav.gpt", "gpt")), u.appendChild(o("/factory.html", "nav.factory", "factory")), u.appendChild(o("/initramfs.html", "nav.initramfs", "initramfs")), p.appendChild(u), u = document.createElement("div"), u.className = "nav-section", b = document.createElement("div"), b.className = "nav-section-title", b.setAttribute("data-i18n", "nav.system"), b.textContent = t("nav.system"), u.appendChild(b), u.appendChild(o("/backup.html", "nav.backup", "backup")), u.appendChild(o("/env.html", "nav.env", "env")), u.appendChild(o("/console.html", "nav.console", "console")), r = o("/reboot.html", "nav.reboot", "reboot"), r.onclick = function () {
+    }, l.appendChild(n), h.appendChild(l), i.appendChild(h), p = document.createElement("div"), p.className = "nav", e = document.createElement("div"), e.className = "nav-section", w = document.createElement("div"), w.className = "nav-section-title", w.setAttribute("data-i18n", "nav.basic"), w.textContent = t("nav.basic"), e.appendChild(w), e.appendChild(o("/", "nav.firmware", "firmware")), e.appendChild(o("/uboot.html", "nav.uboot", "uboot")), p.appendChild(e), u = document.createElement("div"), u.className = "nav-section", b = document.createElement("div"), b.className = "nav-section-title", b.setAttribute("data-i18n", "nav.advanced"), b.textContent = t("nav.advanced"), u.appendChild(b), u.appendChild(o("/bl2.html", "nav.bl2", "bl2")), u.appendChild(o("/gpt.html", "nav.gpt", "gpt")), u.appendChild(o("/factory.html", "nav.factory", "factory")), u.appendChild(o("/initramfs.html", "nav.initramfs", "initramfs")), p.appendChild(u), u = document.createElement("div"), u.className = "nav-section", b = document.createElement("div"), b.className = "nav-section-title", b.setAttribute("data-i18n", "nav.system"), b.textContent = t("nav.system"), u.appendChild(b), u.appendChild(o("/backup.html", "nav.backup", "backup")), u.appendChild(o("/flash.html", "nav.flash", "flash")), u.appendChild(o("/env.html", "nav.env", "env")), u.appendChild(o("/console.html", "nav.console", "console")), r = o("/reboot.html", "nav.reboot", "reboot"), r.onclick = function () {
         return confirm(t("reboot.confirm"))
     }, u.appendChild(r), p.appendChild(u), i.appendChild(p), applyI18n(i))
 }
@@ -433,6 +433,7 @@ function appInit(n) {
     // getCurrentMtdLayout();
     (n === "index" || n === "initramfs") && getmtdlayoutlist();
     n === "backup" && backupInit();
+    n === "flash" && flashInit();
     n === "console" && consoleInit();
     n === "env" && envInit()
 }
@@ -645,6 +646,444 @@ function parseUserLen(n) {
     return r === "" ? i : r === "k" || r === "kb" || r === "kib" ? i * 1024 : null
 }
 
+function flashSetStatus(n) {
+    var t = document.getElementById("flash_status");
+    t && (t.style.display = n ? "block" : "none", t.textContent = n || "")
+}
+
+function flashSetProgress(n) {
+    var t = document.getElementById("flash_restore_bar"), i;
+    if (!t) return;
+    if (n === null || n === undefined) {
+        t.style.display = "none";
+        return;
+    }
+    i = Math.max(0, Math.min(100, parseInt(n || 0)));
+    t.style.display = "block";
+    t.style.setProperty("--percent", i)
+}
+
+function flashUpdateRangeHint() {
+    var u = document.getElementById("flash_range_hint"), n, i, r;
+    if (!u) return;
+    n = parseUserLen(document.getElementById("flash_start").value);
+    i = parseUserLen(document.getElementById("flash_end").value);
+    n === null || i === null ? u.textContent = t("backup.range.hint") : (r = i >= n ? i - n : 0, u.textContent = "Start=" + bytesToHuman(n) + ", End=" + bytesToHuman(i) + ", Size=" + bytesToHuman(r))
+}
+
+function flashPadHex(n, w) {
+    var s = n.toString(16).toUpperCase();
+    while (s.length < w) s = "0" + s;
+    return s
+}
+
+function flashExtractBytes(text) {
+    var bytes = [];
+    if (!text) return bytes;
+    var m = text.match(/[0-9a-fA-F]{2}/g);
+    if (!m) return bytes;
+    for (var i = 0; i < m.length; i++) bytes.push(parseInt(m[i], 16));
+    return bytes
+}
+
+function flashPosToByteIndex(text, pos) {
+    var i, hex = 0;
+    if (!text || pos <= 0) return 0;
+    for (i = 0; i < pos && i < text.length; i++) {
+        if (/[0-9a-fA-F]/.test(text[i])) hex++;
+    }
+    return Math.floor(hex / 2)
+}
+
+function flashByteIndexToPos(byteIndex) {
+    if (!isFinite(byteIndex) || byteIndex < 0) return 0;
+    var line = Math.floor(byteIndex / 16);
+    var col = byteIndex % 16;
+    return line * 48 + col * 3
+}
+
+function flashSetCaretToByte(byteIndex) {
+    var data = document.getElementById("flash_data");
+    if (!data) return;
+    var pos = flashByteIndexToPos(byteIndex);
+    data.focus();
+    data.setSelectionRange(pos, pos);
+    flashSyncScroll()
+}
+
+function flashFormatHexLines(bytes) {
+    var out = [];
+    for (var i = 0; i < bytes.length; i++) {
+        if (i && i % 16 === 0) out.push("\n");
+        out.push(flashPadHex(bytes[i], 2));
+        if (i % 16 !== 15 && i !== bytes.length - 1) out.push(" ");
+    }
+    return out.join("")
+}
+
+function flashRenderHexViews() {
+    var data = document.getElementById("flash_data");
+    var off = document.getElementById("flash_offset");
+    var asc = document.getElementById("flash_ascii");
+    var start = document.getElementById("flash_start");
+    if (!data || !off || !asc) return;
+    var bytes = flashExtractBytes(data.value || "");
+    var base = start ? parseUserLen(start.value) : 0;
+    base = base === null ? 0 : base;
+    var asciiLines = [];
+    var offLines = [];
+    var i, j, rowBytes, c;
+    for (i = 0; i < bytes.length; i += 16) {
+        rowBytes = bytes.slice(i, i + 16);
+        offLines.push("0x" + flashPadHex(base + i, 8));
+        for (j = 0; j < rowBytes.length; j++) {
+            c = rowBytes[j];
+            asciiLines.push(c >= 0x20 && c <= 0x7E ? String.fromCharCode(c) : ".");
+        }
+        if (rowBytes.length < 16) {
+            for (j = rowBytes.length; j < 16; j++) asciiLines.push(" ");
+        }
+        asciiLines.push("\n");
+    }
+    off.textContent = offLines.join("\n");
+    asc.textContent = asciiLines.join("").replace(/\n$/, "");
+}
+
+function flashNormalizeHexInput() {
+    var data = document.getElementById("flash_data");
+    if (!data) return;
+    var bytes = flashExtractBytes(data.value || "");
+    data.value = flashFormatHexLines(bytes);
+    flashRenderHexViews()
+}
+
+function flashAlignInput(keepCaret) {
+    var data = document.getElementById("flash_data");
+    if (!data) return;
+    var caret = data.selectionStart || 0;
+    var byteIndex = flashPosToByteIndex(data.value || "", caret);
+    var bytes = flashExtractBytes(data.value || "");
+    data.value = flashFormatHexLines(bytes);
+    if (keepCaret)
+        flashSetCaretToByte(byteIndex);
+    flashRenderHexViews()
+}
+
+function flashFormatData() {
+    if (!confirm(t("flash.confirm.format"))) return;
+    flashAlignInput(false);
+    flashSetStatus(t("flash.status.formatted"))
+}
+
+function flashSnapCaret() {
+    var data = document.getElementById("flash_data");
+    if (!data) return;
+    var caret = data.selectionStart || 0;
+    var byteIndex = flashPosToByteIndex(data.value || "", caret);
+    flashSetCaretToByte(byteIndex)
+}
+
+function flashSyncScroll() {
+    var data = document.getElementById("flash_data");
+    var off = document.getElementById("flash_offset");
+    var asc = document.getElementById("flash_ascii");
+    if (!data || !off || !asc) return;
+    off.scrollTop = data.scrollTop;
+    asc.scrollTop = data.scrollTop
+}
+
+function flashJumpToOffset() {
+    var jump = document.getElementById("flash_jump");
+    var start = document.getElementById("flash_start");
+    var data = document.getElementById("flash_data");
+    if (!jump || !data) return;
+    var target = parseUserLen(jump.value);
+    if (target === null) {
+        flashSetStatus(t("flash.error.jump"));
+        return
+    }
+    var base = start ? parseUserLen(start.value) : 0;
+    base = base === null ? 0 : base;
+    var bytes = flashExtractBytes(data.value || "");
+    var byteIndex = target - base;
+    if (byteIndex < 0 || byteIndex >= bytes.length) {
+        flashSetStatus(t("flash.error.jump"));
+        return
+    }
+    flashSetCaretToByte(byteIndex);
+    var lineHeight = parseFloat(getComputedStyle(data).lineHeight) || 18;
+    var line = Math.floor(byteIndex / 16);
+    data.scrollTop = line * lineHeight;
+    flashSyncScroll();
+    flashSetStatus("")
+}
+
+function flashFindLastBefore(str, sub, limit) {
+    var idx = -1, cur = str.indexOf(sub);
+    while (cur !== -1 && cur < limit) {
+        idx = cur;
+        cur = str.indexOf(sub, cur + 1)
+    }
+    return idx
+}
+
+function flashParseBackupFilename(name) {
+    if (!name) return null;
+    var rangeIdx = name.indexOf("_0x"), dashIdx, startStr, endStr, start, end;
+    if (rangeIdx < 0) return null;
+    dashIdx = name.indexOf("-0x", rangeIdx);
+    if (dashIdx < 0) return null;
+    startStr = name.slice(rangeIdx + 1, dashIdx);
+    endStr = name.slice(dashIdx + 1);
+    start = /^0x[0-9a-fA-F]+/.exec(startStr);
+    end = /^0x[0-9a-fA-F]+/.exec(endStr);
+    if (!start || !end) return null;
+    start = parseInt(start[0], 16);
+    end = parseInt(end[0], 16);
+    if (!isFinite(start) || !isFinite(end) || end <= start) return null;
+    var mtdIdx = flashFindLastBefore(name, "_mtd_", rangeIdx);
+    var mmcIdx = flashFindLastBefore(name, "_mmc_", rangeIdx);
+    var stypeIdx = mtdIdx >= 0 && mmcIdx >= 0 ? (mtdIdx > mmcIdx ? mtdIdx : mmcIdx) : (mtdIdx >= 0 ? mtdIdx : mmcIdx);
+    if (stypeIdx < 0) return null;
+    var storage = stypeIdx === mtdIdx ? "mtd" : "mmc";
+    var seg = name.slice(stypeIdx + 5, rangeIdx);
+    if (!seg) return null;
+    var parts = seg.split("_");
+    var target = parts[parts.length - 1];
+    if (!target) return null;
+    return { storage: storage, target: target, start: start, end: end }
+}
+
+function flashSelectTarget(val) {
+    var sel = document.getElementById("flash_target"), i;
+    if (!sel) return false;
+    for (i = 0; i < sel.options.length; i++) if (sel.options[i].value === val) {
+        sel.selectedIndex = i;
+        return true
+    }
+    return false
+}
+
+function flashInit() {
+    var target = document.getElementById("flash_target");
+    var start = document.getElementById("flash_start");
+    var end = document.getElementById("flash_end");
+    var data = document.getElementById("flash_data");
+    var info = document.getElementById("flash_info");
+    var restoreInfo = document.getElementById("flash_restore_info");
+    var backup = document.getElementById("flash_backup");
+
+    start && (start.oninput = function () { flashUpdateRangeHint(); flashRenderHexViews(); });
+    end && (end.oninput = flashUpdateRangeHint);
+    flashUpdateRangeHint();
+    flashRenderHexViews();
+
+    flashSetStatus("");
+
+    if (data) {
+        data.addEventListener("input", function () { flashAlignInput(true); });
+        data.addEventListener("blur", function () { flashAlignInput(false); });
+        data.addEventListener("click", flashSnapCaret);
+        data.addEventListener("keyup", flashSnapCaret);
+        data.addEventListener("scroll", flashSyncScroll);
+    }
+
+    backup && (backup.onchange = function () {
+        var f = backup.files && backup.files.length ? backup.files[0] : null;
+        var d = f ? flashParseBackupFilename(f.name) : null;
+        if (!d) {
+            restoreInfo && (restoreInfo.textContent = t("flash.detected.none"));
+            return
+        }
+        restoreInfo && (restoreInfo.textContent = d.storage + ":" + d.target + " 0x" + d.start.toString(16) + "-0x" + d.end.toString(16));
+        flashSelectTarget(d.storage + ":" + d.target);
+        start && (start.value = "0x" + d.start.toString(16));
+        end && (end.value = "0x" + d.end.toString(16));
+        flashUpdateRangeHint();
+        flashRenderHexViews();
+    });
+
+    ajax({
+        url: "/backup/info",
+        done: function (u) {
+            var r, e, o, s, f;
+            try {
+                r = JSON.parse(u)
+            } catch (h) {
+                flashSetStatus("backupinfo parse failed");
+                return
+            }
+            info && (o = [], r.mmc && r.mmc.present ? o.push("MMC: " + (r.mmc.vendor || "") + " " + (r.mmc.product || "")) : o.push("MMC: " + t("backup.storage.not_present")), r.mtd && r.mtd.present ? o.push("MTD: " + (r.mtd.model || "")) : o.push("MTD: " + t("backup.storage.not_present")), info.textContent = o.join(" | "));
+            if (!target) return;
+            target.options.length = 0;
+            s = document.createElement("option");
+            s.value = "";
+            s.dataset.i18nKey = "backup.target.placeholder";
+            target.appendChild(s);
+            r.mmc && r.mmc.present && (f = document.createElement("option"), f.value = "mmc:raw", f.textContent = "[MMC] raw", target.appendChild(f), r.mmc.parts && r.mmc.parts.length && r.mmc.parts.forEach(function (t) {
+                var i;
+                t && t.name && (i = document.createElement("option"), i.value = "mmc:" + t.name, i.textContent = "[MMC] " + t.name + (t.size ? " (" + bytesToHuman(t.size) + ")" : ""), target.appendChild(i))
+            }));
+            r.mtd && r.mtd.present && r.mtd.parts && r.mtd.parts.length && r.mtd.parts.forEach(function (t) {
+                var i;
+                t && t.name && (i = document.createElement("option"), i.value = "mtd:" + t.name, i.textContent = "[MTD] " + t.name + (t.size ? " (" + bytesToHuman(t.size) + ")" : ""), target.appendChild(i))
+            });
+            target.options.length > 1 && (target.selectedIndex = 1);
+            applyI18n(target)
+        }
+    })
+}
+
+async function flashRead() {
+    var target = document.getElementById("flash_target");
+    var start = document.getElementById("flash_start");
+    var end = document.getElementById("flash_end");
+    var data = document.getElementById("flash_data");
+    if (!target || !start || !end) return;
+    if (!target.value) {
+        alert(t("flash.error.no_target"));
+        return
+    }
+    if (!start.value || !end.value) {
+        alert(t("flash.error.bad_range"));
+        return
+    }
+    try {
+        flashSetStatus(t("flash.status.reading"));
+        var fd = new FormData();
+        fd.append("op", "read");
+        fd.append("storage", "auto");
+        fd.append("target", target.value);
+        fd.append("start", start.value);
+        fd.append("end", end.value);
+        var r = await fetch("/flash/read", { method: "POST", body: fd });
+        var txt = await r.text();
+        if (!r.ok) {
+            flashSetStatus(t("flash.status.http") + " " + r.status + (txt ? ": " + txt : ""));
+            return
+        }
+        var j;
+        try { j = JSON.parse(txt); } catch (e) { flashSetStatus(t("flash.status.error") + " parse"); return; }
+        if (!j || !j.ok) {
+            flashSetStatus(t("flash.status.error") + " " + (j && j.error ? j.error : ""));
+            return
+        }
+        data && (data.value = j.data || "");
+        flashNormalizeHexInput();
+        flashSetStatus(t("flash.status.done"))
+    } catch (e) {
+        flashSetStatus(t("flash.status.error") + " " + (e && e.message ? e.message : String(e)))
+    }
+}
+
+async function flashWrite() {
+    var target = document.getElementById("flash_target");
+    var start = document.getElementById("flash_start");
+    var data = document.getElementById("flash_data");
+    if (!target || !start || !data) return;
+    if (!target.value) {
+        alert(t("flash.error.no_target"));
+        return
+    }
+    if (!start.value) {
+        alert(t("flash.error.bad_range"));
+        return
+    }
+    if (!data.value || !data.value.trim()) {
+        alert(t("flash.error.no_data"));
+        return
+    }
+    if (!confirm(t("flash.confirm.write"))) return;
+    try {
+        flashSetStatus(t("flash.status.writing"));
+        var fd = new FormData();
+        fd.append("op", "write");
+        fd.append("storage", "auto");
+        fd.append("target", target.value);
+        fd.append("start", start.value);
+        fd.append("data", data.value);
+        var r = await fetch("/flash/write", { method: "POST", body: fd });
+        var txt = await r.text();
+        if (!r.ok) {
+            flashSetStatus(t("flash.status.http") + " " + r.status + (txt ? ": " + txt : ""));
+            return
+        }
+        var j;
+        try { j = JSON.parse(txt); } catch (e) { flashSetStatus(t("flash.status.error") + " parse"); return; }
+        if (!j || !j.ok) {
+            flashSetStatus(t("flash.status.error") + " " + (j && j.error ? j.error : ""));
+            return
+        }
+        flashSetStatus(t("flash.status.done"))
+    } catch (e) {
+        flashSetStatus(t("flash.status.error") + " " + (e && e.message ? e.message : String(e)))
+    }
+}
+
+async function flashRestore() {
+    var target = document.getElementById("flash_target");
+    var start = document.getElementById("flash_start");
+    var end = document.getElementById("flash_end");
+    var backup = document.getElementById("flash_backup");
+    if (!backup || !backup.files || !backup.files.length) {
+        alert(t("flash.error.no_file"));
+        return
+    }
+    if (!confirm(t("flash.confirm.restore"))) return;
+    try {
+        flashSetProgress(0);
+        flashSetStatus(t("flash.status.uploading"));
+        var fd = new FormData();
+        fd.append("op", "restore");
+        fd.append("backup", backup.files[0]);
+        target && target.value && fd.append("target", target.value);
+        start && start.value && fd.append("start", start.value);
+        end && end.value && fd.append("end", end.value);
+        fd.append("storage", "auto");
+
+        await new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = function (evt) {
+                if (!evt || !evt.lengthComputable) return;
+                flashSetProgress(evt.loaded / evt.total * 100);
+            };
+            xhr.upload.onload = function () {
+                flashSetProgress(100);
+                flashSetStatus(t("flash.status.restoring"));
+            };
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status !== 200) {
+                    flashSetStatus(t("flash.status.http") + " " + xhr.status + (xhr.responseText ? ": " + xhr.responseText : ""));
+                    flashSetProgress(null);
+                    reject(new Error("http"));
+                    return;
+                }
+                var j;
+                try { j = JSON.parse(xhr.responseText); } catch (e) {
+                    flashSetStatus(t("flash.status.error") + " parse");
+                    flashSetProgress(null);
+                    reject(e);
+                    return;
+                }
+                if (!j || !j.ok) {
+                    flashSetStatus(t("flash.status.error") + " " + (j && j.error ? j.error : ""));
+                    flashSetProgress(null);
+                    reject(new Error("bad"));
+                    return;
+                }
+                flashSetProgress(100);
+                flashSetStatus(t("flash.status.done"));
+                resolve();
+            };
+            xhr.open("POST", "/flash/restore");
+            xhr.send(fd);
+        });
+    } catch (e) {
+        flashSetStatus(t("flash.status.error") + " " + (e && e.message ? e.message : String(e)))
+    }
+}
+
 function setBackupStatus(n) {
     var t = document.getElementById("backup_status");
     t && (t.style.display = n ? "block" : "none", t.textContent = n || "")
@@ -847,6 +1286,7 @@ var I18N = {
         "nav.initramfs": "Load initramfs",
         "nav.system": "System",
         "nav.backup": "Backup",
+        "nav.flash": "Flash",
         "nav.env": "Environment",
         "nav.console": "Console",
         "nav.reboot": "Reboot",
@@ -915,7 +1355,7 @@ var I18N = {
         "backup.storage.not_present": "not present",
         "backup.target.placeholder": "-- select --",
         "backup.target.full_disk": "Full flash",
-        "backup.range.hint": "Tip: input supports decimal, 0xHEX, and KiB suffix (e.g. 64KiB).",
+        "backup.range.hint": "Tip: input supports decimal, 0xHEX, and KiB suffix (e.g. 4KiB).",
         "backup.status.starting": "Starting...",
         "backup.status.downloading": "Downloading:",
         "backup.status.preparing": "Preparing file...",
@@ -924,6 +1364,45 @@ var I18N = {
         "backup.error.bad_range": "Please input valid start/end",
         "backup.error.http": "HTTP error:",
         "backup.error.exception": "Failed:",
+        "flash.title": "FLASH EDITOR",
+        "flash.hint": "Read and write raw flash ranges using <strong>hex</strong>.",
+        "flash.label.target": "Target:",
+        "flash.label.start": "Start:",
+        "flash.label.end": "End (exclusive):",
+        "flash.label.size": "Size:",
+        "flash.label.offset": "Offset",
+        "flash.label.ascii": "ASCII",
+        "flash.label.jump": "Jump to offset:",
+        "flash.label.data": "Hex data:",
+        "flash.label.restore": "Restore file:",
+        "flash.label.detected": "Detected:",
+        "flash.action.read": "Read",
+        "flash.action.write": "Write",
+        "flash.action.restore": "Restore",
+        "flash.action.jump": "Jump",
+        "flash.action.format": "Format",
+        "flash.warn.1": "writing wrong data may brick the device",
+        "flash.warn.2": "always double-check target and range",
+        "flash.warn.3": "do not power off during write/restore",
+        "flash.warn.4": "max size in once read/write is 4KiB",
+        "flash.status.ready": "Ready.",
+        "flash.status.reading": "Reading...",
+        "flash.status.writing": "Writing...",
+        "flash.status.restoring": "Restoring...",
+        "flash.status.uploading": "Uploading...",
+        "flash.status.done": "Done.",
+        "flash.status.formatted": "Formatted.",
+        "flash.status.http": "HTTP error:",
+        "flash.status.error": "Error:",
+        "flash.error.no_target": "Please select a target",
+        "flash.error.bad_range": "Please input valid start/end",
+        "flash.error.no_data": "Please input hex data",
+        "flash.error.no_file": "Please select a backup file",
+        "flash.error.jump": "Offset out of range",
+        "flash.detected.none": "No valid backup filename detected",
+        "flash.confirm.write": "Write data to flash now?",
+        "flash.confirm.format": "Format hex data now? This will reflow and trim invalid characters.",
+        "flash.confirm.restore": "Restore backup to flash now?",
         "sysinfo.loading": "Loading system info...",
         "sysinfo.unknown": "unknown",
         "sysinfo.cpu": "CPU:",
@@ -1009,10 +1488,11 @@ var I18N = {
         "nav.factory": "更新 Factory",
         "nav.initramfs": "加载 Initramfs",
         "nav.system": "系统",
-        "nav.backup": "备份",
-        "nav.env": "环境",
-        "nav.console": "终端",
-        "nav.reboot": "重启",
+        "nav.backup": "闪存备份",
+        "nav.flash": "闪存编辑",
+        "nav.env": "环境管理",
+        "nav.console": "网页终端",
+        "nav.reboot": "重启设备",
         "control.language": "🌐语言",
         "control.theme": "🌓主题",
         "theme.auto": "自动",
@@ -1078,7 +1558,7 @@ var I18N = {
         "backup.storage.not_present": "未检测到",
         "backup.target.placeholder": "-- 请选择 --",
         "backup.target.full_disk": "全盘备份",
-        "backup.range.hint": "提示：支持十进制、0x 十六进制，以及 KiB 后缀（例如 64KiB）。",
+        "backup.range.hint": "提示：支持十进制、0x 十六进制，以及 KiB 后缀（例如 4KiB）。",
         "backup.status.starting": "开始中…",
         "backup.status.downloading": "下载中：",
         "backup.status.preparing": "正在生成文件…",
@@ -1087,6 +1567,45 @@ var I18N = {
         "backup.error.bad_range": "请输入有效的起始/结束",
         "backup.error.http": "HTTP 错误：",
         "backup.error.exception": "失败：",
+        "flash.title": "闪存编辑",
+        "flash.hint": "以 <strong>十六进制</strong> 读取和写入闪存指定范围。",
+        "flash.label.target": "目标：",
+        "flash.label.start": "起始：",
+        "flash.label.end": "结束（不包含）：",
+        "flash.label.size": "大小：",
+        "flash.label.offset": "偏移",
+        "flash.label.ascii": "ASCII",
+        "flash.label.jump": "跳转偏移：",
+        "flash.label.data": "十六进制数据：",
+        "flash.label.restore": "恢复文件：",
+        "flash.label.detected": "识别结果：",
+        "flash.action.read": "读取",
+        "flash.action.write": "写入",
+        "flash.action.restore": "恢复",
+        "flash.action.jump": "跳转",
+        "flash.action.format": "格式化",
+        "flash.warn.1": "写入错误数据可能导致设备变砖",
+        "flash.warn.2": "请仔细确认目标与范围",
+        "flash.warn.3": "写入/恢复过程中请勿断电",
+        "flash.warn.4": "一次读取/写入最大4KiB",
+        "flash.status.ready": "就绪。",
+        "flash.status.reading": "读取中...",
+        "flash.status.writing": "写入中...",
+        "flash.status.restoring": "恢复中...",
+        "flash.status.uploading": "上传中...",
+        "flash.status.done": "完成。",
+        "flash.status.formatted": "已格式化。",
+        "flash.status.http": "HTTP 错误：",
+        "flash.status.error": "错误：",
+        "flash.error.no_target": "请选择一个目标",
+        "flash.error.bad_range": "请输入有效的起始/结束",
+        "flash.error.no_data": "请输入十六进制数据",
+        "flash.error.no_file": "请选择备份文件",
+        "flash.error.jump": "偏移超出当前范围",
+        "flash.detected.none": "未识别到有效备份文件名",
+        "flash.confirm.write": "确认写入闪存？",
+        "flash.confirm.format": "确认格式化十六进制数据？将重新排版并清除无效字符。",
+        "flash.confirm.restore": "确认恢复备份到闪存？",
         "sysinfo.loading": "正在获取系统信息…",
         "sysinfo.unknown": "未知",
         "sysinfo.cpu": "处理器：",
