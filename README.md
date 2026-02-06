@@ -8,23 +8,12 @@ Supports GitHub Actions for automatic builds, and can generate both normal and o
 
 ## About bl-mt798x
 
-- <https://cmi.hanwckf.top/p/mt798x-uboot-usage>
-
-> Version-2022 WEB UI preview
-
-![Version-2022](document/pictures/uboot-2022.png)
-
-> Version-2023/2024 WEB UI preview
-
-![Version-2023/2024](document/pictures/uboot-2023.png)
-
-> Version-2025 WEB UI preview
-
 U-Boot 2025 adds more features:
 
 - System info display
 - Factory (RF) update
 - Backup download
+- Flash editor
 - Web terminal
 - Environment manager
 - Device reboot
@@ -42,6 +31,7 @@ You can configure the features you need.
 - [x] WEBUI_FAILSAFE_BACKUP
 - [x] WEBUI_FAILSAFE_ENV
 - [x] WEBUI_FAILSAFE_CONSOLE
+- [x] WEBUI_FAILSAFE_FLASH
 
 > Enable WEBUI_FAILSAFE_UI_OLD will use the traditional webui interface.
 
@@ -147,7 +137,19 @@ Open the repository's Actions tab, choose the "Build FIT BL2 and FIP" workflow, 
 
 ---
 
-### xiaomi-wr30u multi-layout uboot firmware compatibility
+## About other Version
+
+- <https://cmi.hanwckf.top/p/mt798x-uboot-usage>
+
+> Version-2022 WEB UI preview
+
+![Version-2022](document/pictures/uboot-2022.png)
+
+> Version-2023/2024 WEB UI preview
+
+![Version-2023/2024](document/pictures/uboot-2023.png)
+
+## xiaomi-wr30u multi-layout uboot firmware compatibility
 
 |Firmware type|uboot (default)|uboot (immortalwrt-112m)|uboot (qwrt)|
 |:----:|:----:|:----:|:----:|
