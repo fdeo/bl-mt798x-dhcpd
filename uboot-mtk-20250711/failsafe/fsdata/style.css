@@ -762,6 +762,27 @@ ul {
     border-radius: 100%;
 }
 
+.flash-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.spinner {
+    height: 20px;
+    width: 20px;
+    animation: r 1s infinite linear;
+    border-left: 4px solid rgba(234, 241, 255, 0.85);
+    border-right: 4px solid rgba(234, 241, 255, 0.85);
+    border-bottom: 4px solid rgba(234, 241, 255, 0.85);
+    border-top: 4px solid var(--primary);
+    border-radius: 100%;
+}
+
 @-webkit-keyframes r {
     from {
         -webkit-transform: rotate(0deg);
