@@ -11,12 +11,12 @@ on:
       MODEL:
         description: 'Model selection'
         required: true
-        default: 'cmcc_a10'
+        default: 'glinet_gl-mt6000'
         type: string
       FIP_VERSION: 
         description: 'FIP versions (comma-separated, e.g. 2022,2023,2024,2025/all)'
         required: true
-        default: '2024'
+        default: '2025'
         type: string
       REPO_URL:
         description: 'Source repository'
@@ -50,8 +50,8 @@ on:
         type: boolean
       CUSTOM_IP:
         description: 'Custom default IP for DHCPD (e.g. 192.168.31.1)'
-        required: false
-        default: 'false'
+        required: true
+        default: '192.168.8.1'
         type: string
       ssh:
         description: 'SSH connection to Actions'
